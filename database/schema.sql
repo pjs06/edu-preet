@@ -1,69 +1,98 @@
--- 1. USERS (Students + Parents)
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
+-- DROP TABLES if they exist (to allow clean reset)
+DROP TABLE IF EXISTS checkpoint_responses CASCADE;
+DROP TABLE IF EXISTS concept_attempts CASCADE;
+DROP TABLE IF EXISTS learning_sessions CASCADE;
+DROP TABLE IF EXISTS checkpoints CASCADE;
+DROP TABLE IF EXISTS learning_paths CASCADE;
+DROP TABLE IF EXISTS curriculum CASCADE;
+DROP TABLE IF EXISTS student_analytics CASCADE;
+DROP TABLE IF EXISTS subscriptions CASCADE;
+DROP TABLE IF EXISTS students CASCADE;
+DROP TABLE IF EXISTS parents CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS ai_content_cache CASCADE;
+
+-- 1. USERS TABLE (Authentication only - for login credentials)
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE,
   phone VARCHAR(15) UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) NOT NULL, -- 'student', 'parent', 'teacher'
+  role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'parent')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  name VARCHAR(100),
+  
+  -- Ensure at least one contact method
+  CONSTRAINT check_contact CHECK (email IS NOT NULL OR phone IS NOT NULL)
+);
+
+-- 2. PARENTS TABLE (Parent-specific profile data)
+CREATE TABLE parents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  phone_alternate VARCHAR(15),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 2. STUDENT PROFILES
-CREATE TABLE IF NOT EXISTS students (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+-- 3. STUDENTS TABLE (Student-specific profile data)
+CREATE TABLE students (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  parent_id UUID REFERENCES parents(id) ON DELETE CASCADE NOT NULL, -- REQUIRED
   name VARCHAR(100) NOT NULL,
-  grade INTEGER NOT NULL, -- 1-5 for primary
-  language VARCHAR(20) DEFAULT 'hindi', -- 'hindi', 'marathi', 'tamil', etc.
-  parent_id UUID REFERENCES users(id), -- Link to parent account
-  current_level JSONB, -- {"math": 4, "science": 3} - tracks actual level vs grade
-  created_at TIMESTAMP DEFAULT NOW()
+  grade INTEGER NOT NULL CHECK (grade BETWEEN 1 AND 12),
+  language VARCHAR(20) DEFAULT 'hindi',
+  current_level JSONB, -- {"math": 4, "science": 3}
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 3. CURRICULUM (Your content structure)
-CREATE TABLE IF NOT EXISTS curriculum (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  subject VARCHAR(50) NOT NULL, -- 'math', 'science', 'hindi'
+-- 4. CURRICULUM (Your content structure) - NO CHANGES
+CREATE TABLE curriculum (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subject VARCHAR(50) NOT NULL,
   grade INTEGER NOT NULL,
   chapter_number INTEGER NOT NULL,
   chapter_title VARCHAR(255) NOT NULL,
-  concepts JSONB NOT NULL, -- Array of concept objects
+  concepts JSONB NOT NULL,
   language VARCHAR(20) DEFAULT 'hindi',
   created_at TIMESTAMP DEFAULT NOW(),
   
   UNIQUE(subject, grade, chapter_number, language)
 );
 
--- 4. LEARNING PATHS (The core of your adaptive system)
-CREATE TABLE IF NOT EXISTS learning_paths (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  concept_id VARCHAR(100) NOT NULL, -- References curriculum.concepts[].id
-  path_type VARCHAR(20) NOT NULL, -- 'main', 'remedial_1', 'remedial_2', 'advanced'
-  content_prompt TEXT NOT NULL, -- Prompt template for Claude
-  explanation_style VARCHAR(50), -- 'visual', 'story', 'practical', 'formal'
-  difficulty_level INTEGER DEFAULT 5, -- 1-10 scale
+-- 5. LEARNING PATHS - NO CHANGES
+CREATE TABLE learning_paths (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  concept_id VARCHAR(100) NOT NULL,
+  path_type VARCHAR(20) NOT NULL,
+  content_prompt TEXT NOT NULL,
+  explanation_style VARCHAR(50),
+  difficulty_level INTEGER DEFAULT 5,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 5. CHECKPOINTS (Questions to test understanding)
-CREATE TABLE IF NOT EXISTS checkpoints (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 6. CHECKPOINTS - NO CHANGES
+CREATE TABLE checkpoints (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   concept_id VARCHAR(100) NOT NULL,
   question_text TEXT NOT NULL,
-  question_type VARCHAR(20) NOT NULL, -- 'mcq', 'numeric', 'short_answer'
-  options JSONB, -- For MCQ: ["Option A", "Option B", ...]
+  question_type VARCHAR(20) NOT NULL,
+  options JSONB,
   correct_answer TEXT NOT NULL,
-  explanation TEXT, -- Why this is the correct answer
+  explanation TEXT,
   difficulty_level INTEGER DEFAULT 5,
-  max_time_seconds INTEGER DEFAULT 120, -- Time limit
+  max_time_seconds INTEGER DEFAULT 120,
   language VARCHAR(20) DEFAULT 'hindi',
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 6. LEARNING SESSIONS (Student's active learning session)
-CREATE TABLE IF NOT EXISTS learning_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 7. LEARNING SESSIONS - NO CHANGES
+CREATE TABLE learning_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   subject VARCHAR(50) NOT NULL,
   grade INTEGER NOT NULL,
@@ -72,13 +101,13 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
   current_path_type VARCHAR(20) DEFAULT 'main',
   started_at TIMESTAMP DEFAULT NOW(),
   ended_at TIMESTAMP,
-  status VARCHAR(20) DEFAULT 'active', -- 'active', 'paused', 'completed'
+  status VARCHAR(20) DEFAULT 'active',
   total_duration_mins INTEGER DEFAULT 0
 );
 
--- 7. CONCEPT ATTEMPTS (Track each concept attempt)
-CREATE TABLE IF NOT EXISTS concept_attempts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 8. CONCEPT ATTEMPTS - NO CHANGES
+CREATE TABLE concept_attempts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id UUID REFERENCES learning_sessions(id) ON DELETE CASCADE,
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   concept_id VARCHAR(100) NOT NULL,
@@ -87,13 +116,13 @@ CREATE TABLE IF NOT EXISTS concept_attempts (
   completed_at TIMESTAMP,
   checkpoint_passed BOOLEAN,
   time_taken_seconds INTEGER,
-  path_taken JSONB, -- Track the journey: ["main", "remedial_1", "main"]
+  path_taken JSONB,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 8. CHECKPOINT RESPONSES (Individual question attempts)
-CREATE TABLE IF NOT EXISTS checkpoint_responses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 9. CHECKPOINT RESPONSES - NO CHANGES
+CREATE TABLE checkpoint_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   attempt_id UUID REFERENCES concept_attempts(id) ON DELETE CASCADE,
   checkpoint_id UUID REFERENCES checkpoints(id),
   student_answer TEXT,
@@ -102,58 +131,60 @@ CREATE TABLE IF NOT EXISTS checkpoint_responses (
   submitted_at TIMESTAMP DEFAULT NOW()
 );
 
--- 9. AI CONTENT CACHE (Cache generated explanations)
-CREATE TABLE IF NOT EXISTS ai_content_cache (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 10. AI CONTENT CACHE - NO CHANGES
+CREATE TABLE ai_content_cache (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   concept_id VARCHAR(100) NOT NULL,
   path_type VARCHAR(20) NOT NULL,
   language VARCHAR(20) NOT NULL,
-  prompt_hash VARCHAR(64) NOT NULL, -- Hash of the prompt used
+  prompt_hash VARCHAR(64) NOT NULL,
   generated_content TEXT NOT NULL,
-  model_used VARCHAR(50), -- 'claude-sonnet-4', etc.
+  model_used VARCHAR(50),
   generation_timestamp TIMESTAMP DEFAULT NOW(),
-  usage_count INTEGER DEFAULT 0, -- Track how often used
-  rating DECIMAL(3,2), -- Quality rating 1-5
+  usage_count INTEGER DEFAULT 0,
+  rating DECIMAL(3,2),
   
   UNIQUE(concept_id, path_type, language, prompt_hash)
 );
 
--- 10. STUDENT ANALYTICS (Aggregate performance data)
-CREATE TABLE IF NOT EXISTS student_analytics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 11. STUDENT ANALYTICS - NO CHANGES
+CREATE TABLE student_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   subject VARCHAR(50) NOT NULL,
   grade INTEGER NOT NULL,
   week_start_date DATE NOT NULL,
-  
-  -- Performance metrics
   total_concepts_attempted INTEGER DEFAULT 0,
   concepts_mastered INTEGER DEFAULT 0,
   total_time_mins INTEGER DEFAULT 0,
-  checkpoint_success_rate DECIMAL(5,2), -- Percentage
-  
-  -- Learning patterns
-  common_struggle_areas JSONB, -- ["fractions", "decimals"]
+  checkpoint_success_rate DECIMAL(5,2),
+  common_struggle_areas JSONB,
   remedial_path_frequency INTEGER DEFAULT 0,
   avg_time_per_concept_mins DECIMAL(5,2),
-  
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   
   UNIQUE(student_id, subject, grade, week_start_date)
 );
 
--- 11. SUBSCRIPTIONS (Payment tracking)
-CREATE TABLE IF NOT EXISTS subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  parent_id UUID REFERENCES users(id),
-  plan_type VARCHAR(20) NOT NULL, -- 'monthly', 'annual'
+-- 12. SUBSCRIPTIONS
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  parent_id UUID REFERENCES parents(id) ON DELETE CASCADE NOT NULL, -- Changed: now references parents table
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE, -- Optional: specific student or all children
+  plan_type VARCHAR(20) NOT NULL,
   amount_paid DECIMAL(10,2) NOT NULL,
   currency VARCHAR(3) DEFAULT 'INR',
-  status VARCHAR(20) NOT NULL, -- 'active', 'expired', 'cancelled'
+  status VARCHAR(20) NOT NULL,
   started_at TIMESTAMP DEFAULT NOW(),
   expires_at TIMESTAMP NOT NULL,
-  razorpay_subscription_id VARCHAR(100), -- For payment gateway
+  razorpay_subscription_id VARCHAR(100),
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- INDEXES for performance
+CREATE INDEX idx_students_parent_id ON students(parent_id);
+CREATE INDEX idx_students_user_id ON students(user_id);
+CREATE INDEX idx_parents_user_id ON parents(user_id);
+CREATE INDEX idx_learning_sessions_student_id ON learning_sessions(student_id);
+CREATE INDEX idx_subscriptions_parent_id ON subscriptions(parent_id);
