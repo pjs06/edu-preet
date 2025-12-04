@@ -51,6 +51,10 @@ app.get('/', (req, res) => {
     res.send('Educational Platform API is running');
 });
 
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Start Server
 // Start Server
 if (require.main === module) {

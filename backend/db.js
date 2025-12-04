@@ -3,18 +3,36 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
-});
+const connectionString = process.env.DATABASE_URL;
 
-pool.on('connect', () => {
-    console.log('Connected to PostgreSQL database');
-});
+let pool;
 
-pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
-});
+if (!connectionString) {
+    console.error('DATABASE_URL is not defined in environment variables');
+    // Create a mock pool that logs errors when used
+    pool = {
+        query: (text, params, callback) => {
+            console.error('Cannot execute query: DATABASE_URL is missing');
+            const err = new Error('Database not configured');
+            if (callback) callback(err);
+            return Promise.reject(err);
+        },
+        on: () => { }
+    };
+} else {
+    pool = new Pool({
+        connectionString: connectionString,
+        ssl: connectionString.includes('localhost') || connectionString.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
+    });
+
+    pool.on('connect', () => {
+        console.log('Connected to PostgreSQL database');
+    });
+
+    pool.on('error', (err) => {
+        console.error('Unexpected error on idle client', err);
+        process.exit(-1);
+    });
+}
 
 module.exports = { pool };
