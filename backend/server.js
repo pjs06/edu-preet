@@ -23,6 +23,25 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
+// Public Routes (Before Auth Middleware)
+app.get('/', (req, res) => {
+    res.send('Educational Platform API is running');
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/debug-env', (req, res) => {
+    const dbUrl = process.env.DATABASE_URL;
+    res.json({
+        hasDbUrl: !!dbUrl,
+        dbUrlMasked: dbUrl ? dbUrl.replace(/:[^:@]*@/, ':****@') : null,
+        envPort: process.env.PORT,
+        nodeEnv: process.env.NODE_ENV
+    });
+});
+
 // Routes
 const { authenticateJWT, trackActivity } = require('./middleware/authMiddleware');
 
@@ -47,15 +66,16 @@ app.use('/api/analytics', require('./routes/analytics'));
 
 
 
+// Public Routes (Before Auth Middleware)
 app.get('/', (req, res) => {
     res.send('Educational Platform API is running');
 });
 
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/debug-env', (req, res) => {
+app.get('/api/debug-env', (req, res) => {
     const dbUrl = process.env.DATABASE_URL;
     res.json({
         hasDbUrl: !!dbUrl,
