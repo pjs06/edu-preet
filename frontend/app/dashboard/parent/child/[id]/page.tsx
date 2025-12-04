@@ -14,7 +14,7 @@ export default function ChildDetailsPage({ params }: { params: { id: string } })
     const fetchStudentDetails = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/students/${params.id}`, {
+            const res = await fetch(`/api/students/${params.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

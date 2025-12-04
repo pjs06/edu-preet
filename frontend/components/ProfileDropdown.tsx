@@ -24,7 +24,7 @@ export default function ProfileDropdown({ user, colorClass = "bg-blue-100 text-b
     const handleLogout = async () => {
         try {
             // Call backend logout (optional but good practice)
-            await fetch('http://localhost:5001/api/auth/logout', { method: 'POST' });
+            await fetch('/api/auth/logout', { method: 'POST' });
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

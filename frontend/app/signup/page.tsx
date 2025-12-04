@@ -14,7 +14,6 @@ export default function SignupPage() {
     const [formData, setFormData] = useState({
         role: 'parent',
         email: '',
-        phone: '',
         password: '',
         confirmPassword: '',
         name: ''
@@ -43,18 +42,6 @@ export default function SignupPage() {
                 setError("Please enter a valid email address");
                 return;
             }
-
-            if (formData.phone) {
-                const phoneDigits = formData.phone.replace(/\D/g, '');
-                if (phoneDigits.length !== 10) {
-                    setError("Phone number must be exactly 10 digits");
-                    return;
-                }
-                if (!/^\d+$/.test(formData.phone)) {
-                    setError("Phone number must contain only numbers");
-                    return;
-                }
-            }
         }
         setError('');
         setStep(step + 1);
@@ -76,7 +63,6 @@ export default function SignupPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: formData.email,
-                    phone: formData.phone,
                     password: formData.password,
                     role: 'parent',
                     name: formData.name
@@ -149,23 +135,7 @@ export default function SignupPage() {
                                 />
                             </div>
 
-                            <div className="relative flex items-center py-2">
-                                <div className="flex-grow border-t border-gray-200"></div>
-                                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase font-bold tracking-wider">OR</span>
-                                <div className="flex-grow border-t border-gray-200"></div>
-                            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
-                                <input
-                                    name="phone"
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition duration-200"
-                                    placeholder="9876543210"
-                                />
-                            </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>

@@ -14,7 +14,7 @@ export default function ChapterPage() {
         const fetchConcepts = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`http://localhost:5001/api/curriculum/${chapterId}/concepts`, {
+                const res = await fetch(`/api/curriculum/${chapterId}/concepts`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

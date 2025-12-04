@@ -16,7 +16,7 @@ export default function InternalAdminPage() {
         const fetchMetrics = async () => {
             setLoading(true);
             try {
-                const res = await fetch('http://localhost:5001/api/admin/metrics', {
+                const res = await fetch('/api/admin/metrics', {
                     headers: { 'x-admin-key': adminKey }
                 });
                 if (res.status === 401) {

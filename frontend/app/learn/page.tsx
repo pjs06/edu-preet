@@ -29,14 +29,14 @@ function LearnContent() {
         const initSession = async () => {
             try {
                 // 1. Fetch Content
-                const contentRes = await fetch(`http://localhost:5001/api/learning/content/${conceptId}`);
+                const contentRes = await fetch(`/api/learning/content/${conceptId}`);
                 if (!contentRes.ok) throw new Error('Failed to load content');
                 const data = await contentRes.json();
                 setContentData(data);
                 setCurrentPath(data.MAIN);
 
                 // 2. Start Session (Backend Tracking)
-                const startRes = await fetch('http://localhost:5001/api/learning/start', {
+                const startRes = await fetch('/api/learning/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -63,7 +63,7 @@ function LearnContent() {
     const handleVideoComplete = async () => {
         // Track video completion
         if (sessionId && currentPath) {
-            await fetch('http://localhost:5001/api/learning/progress', {
+            await fetch('/api/learning/progress', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -132,7 +132,7 @@ function LearnContent() {
 
         // Track test attempt
         if (sessionId) {
-            await fetch('http://localhost:5001/api/learning/progress', {
+            await fetch('/api/learning/progress', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -169,7 +169,7 @@ function LearnContent() {
 
     const handleCompleteLesson = async () => {
         if (sessionId) {
-            await fetch('http://localhost:5001/api/learning/complete', {
+            await fetch('/api/learning/complete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

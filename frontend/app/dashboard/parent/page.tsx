@@ -15,7 +15,7 @@ export default function ParentDashboard() {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
-                const res = await fetch('http://localhost:5001/api/auth/me', {
+                const res = await fetch('/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -41,7 +41,7 @@ export default function ParentDashboard() {
         console.log('Fetching students for parentId:', parentId);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/students/${parentId}/list`, {
+            const res = await fetch(`/api/students/${parentId}/list`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

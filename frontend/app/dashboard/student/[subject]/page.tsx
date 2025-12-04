@@ -15,7 +15,7 @@ export default function SubjectPage() {
             try {
                 const token = localStorage.getItem('token');
                 // Fetch chapters for this subject
-                const res = await fetch(`http://localhost:5001/api/curriculum?subject=${subject}`, {
+                const res = await fetch(`/api/curriculum?subject=${subject}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

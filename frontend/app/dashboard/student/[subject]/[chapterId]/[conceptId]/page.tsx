@@ -27,7 +27,7 @@ export default function LearningSessionPage() {
                 // Determine studentId (handle both student login and parent-as-student)
                 const studentId = user.role === 'student' ? (user.studentId || user.id) : user.id;
 
-                const res = await fetch('http://localhost:5001/api/learning/start', {
+                const res = await fetch('/api/learning/start', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export default function LearningSessionPage() {
             };
 
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/adaptive/evaluate-test', {
+            const res = await fetch('/api/adaptive/evaluate-test', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ export default function LearningSessionPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/curriculum/content/${conceptId}/${pathType}`, {
+            const res = await fetch(`/api/curriculum/content/${conceptId}/${pathType}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

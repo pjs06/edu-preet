@@ -51,7 +51,7 @@ export default function LearningSessionPage({ params }: { params: { conceptId: s
                 }))
             };
 
-            const res = await fetch('http://localhost:5001/api/adaptive/evaluate-test', {
+            const res = await fetch('/api/adaptive/evaluate-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -72,7 +72,7 @@ export default function LearningSessionPage({ params }: { params: { conceptId: s
     const handleFetchRemedial = async (pathType: string) => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/curriculum/content/${params.conceptId}/${pathType}`);
+            const res = await fetch(`/api/curriculum/content/${params.conceptId}/${pathType}`);
             const data = await res.json();
             setRemedialContent(data.prompt || data.content); // Display prompt or content
         } catch (err) {
