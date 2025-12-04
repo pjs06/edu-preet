@@ -11,7 +11,7 @@ router.post('/signup', async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const { email, phone, password, role, name } = req.body;
+        const { email, password, role, name } = req.body;
 
         if (role !== 'parent') {
             return res.status(400).json({ error: 'Only parents can sign up directly.' });
@@ -19,11 +19,11 @@ router.post('/signup', async (req, res) => {
 
         await client.query('BEGIN');
 
-        // Check if user exists
-        const userCheck = await client.query('SELECT * FROM users WHERE email = $1 OR phone = $2', [email, phone]);
+        // Check if user exists (by email only)
+        const userCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userCheck.rows.length > 0) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'User already exists' });
+            return res.status(400).json({ error: 'User with this email already exists' });
         }
 
         // Hash password
@@ -33,18 +33,18 @@ router.post('/signup', async (req, res) => {
         // 1. Create User
         const userResult = await client.query(
             `INSERT INTO users (email, phone, password_hash, role, name) 
-             VALUES ($1, $2, $3, 'parent', $4) 
+             VALUES ($1, NULL, $2, 'parent', $3) 
              RETURNING id, email, role`,
-            [email, phone, passwordHash, name]
+            [email, passwordHash, name]
         );
         const user = userResult.rows[0];
 
         // 2. Create Parent Profile
         const parentResult = await client.query(
             `INSERT INTO parents (user_id, name, phone_alternate) 
-             VALUES ($1, $2, $3) 
+             VALUES ($1, $2, NULL) 
              RETURNING id, name`,
-            [user.id, name, phone]
+            [user.id, name]
         );
         const parent = parentResult.rows[0];
 
