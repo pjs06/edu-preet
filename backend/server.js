@@ -55,6 +55,16 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/debug-env', (req, res) => {
+    const dbUrl = process.env.DATABASE_URL;
+    res.json({
+        hasDbUrl: !!dbUrl,
+        dbUrlMasked: dbUrl ? dbUrl.replace(/:[^:@]*@/, ':****@') : null,
+        envPort: process.env.PORT,
+        nodeEnv: process.env.NODE_ENV
+    });
+});
+
 // Start Server
 // Start Server
 if (require.main === module) {

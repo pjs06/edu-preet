@@ -4,8 +4,9 @@ const { pool } = require('../db');
 
 // Evaluate Test Performance and Decide Next Step
 router.post('/evaluate-test', async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { studentId, sessionId, conceptId, currentPathType, answers, totalTimeTaken } = req.body;
         // answers: [{ questionId, isCorrect, timeTaken }]
 
@@ -147,7 +148,7 @@ router.post('/evaluate-test', async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 

@@ -8,8 +8,9 @@ const { updateRetentionCohort } = require('../utils/analytics');
 
 // Signup (Parents only)
 router.post('/signup', async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { email, phone, password, role, name } = req.body;
 
         if (role !== 'parent') {
@@ -66,7 +67,7 @@ router.post('/signup', async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 

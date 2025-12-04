@@ -19,6 +19,9 @@ DROP TABLE IF EXISTS user_retention_cohorts CASCADE;
 DROP TABLE IF EXISTS daily_active_users CASCADE;
 DROP TABLE IF EXISTS user_activity_log CASCADE;
 DROP TABLE IF EXISTS user_sessions CASCADE;
+DROP TABLE IF EXISTS learning_assessments CASCADE;
+DROP TABLE IF EXISTS assessment_questions CASCADE;
+DROP TABLE IF EXISTS assessment_responses CASCADE;
 
 -- 1. USERS TABLE (Authentication only - for login credentials)
 CREATE TABLE users (

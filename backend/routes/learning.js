@@ -4,8 +4,9 @@ const { pool } = require('../db');
 
 // Start Learning Session
 router.post('/start', async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { studentId, subject, grade, chapterId, conceptId } = req.body;
         // Note: req.user.sessionId is the *login* session. 
         // We are creating a *learning* session here.
@@ -61,7 +62,7 @@ router.post('/start', async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 
@@ -100,8 +101,9 @@ router.get('/content/:conceptId', async (req, res) => {
 
 // Track Progress (Video Complete / Test Attempt)
 router.post('/progress', async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { sessionId, studentId, type, data } = req.body;
         // type: 'video_complete' | 'test_attempt'
 
@@ -150,14 +152,15 @@ router.post('/progress', async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 
 // Complete Session
 router.post('/complete', async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { sessionId, studentId, conceptId, mastered } = req.body;
 
         await client.query('BEGIN');

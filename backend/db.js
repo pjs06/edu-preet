@@ -17,6 +17,10 @@ if (!connectionString) {
             if (callback) callback(err);
             return Promise.reject(err);
         },
+        connect: () => {
+            console.error('Cannot connect to database: DATABASE_URL is missing');
+            return Promise.reject(new Error('Database not configured'));
+        },
         on: () => { }
     };
 } else {

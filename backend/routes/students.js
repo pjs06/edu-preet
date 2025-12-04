@@ -18,8 +18,9 @@ const verifyParent = async (req, res, next) => {
 
 // Create Student Account (Parent only)
 router.post('/create', verifyParent, async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { parentId, studentName, grade, language, email, password } = req.body;
 
         if (!parentId || !studentName || !grade) {
@@ -79,7 +80,7 @@ router.post('/create', verifyParent, async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 
