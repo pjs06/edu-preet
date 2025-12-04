@@ -1,39 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans overflow-x-hidden selection:bg-[var(--secondary)] selection:text-[var(--primary)]">
 
       {/* Navigation - Glass Effect */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">🌱</div>
-            <div className="text-xl font-bold text-gray-800 tracking-tight">EduPlatform</div>
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
-            <Link href="#" className="hover:text-[var(--primary)] transition duration-300">Home</Link>
-            <Link href="#features" className="hover:text-[var(--primary)] transition duration-300">Features</Link>
-            <Link href="#pricing" className="hover:text-[var(--primary)] transition duration-300">Pricing</Link>
-            <Link href="#contact" className="hover:text-[var(--primary)] transition duration-300">Contact</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="px-6 py-2.5 rounded-full text-sm font-semibold text-gray-600 hover:text-[var(--primary)] hover:bg-[var(--secondary)]/30 transition duration-300"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className="px-6 py-2.5 rounded-full bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 transition transform hover:-translate-y-0.5 duration-300"
-            >
-              Start Free Trial
-            </Link>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation - Glass Effect */}
+      <Navbar />
 
       {/* Hero Section - Clean & Airy */}
       <header className="relative pt-32 pb-24 px-6 overflow-hidden">
@@ -246,22 +222,7 @@ export default function Home() {
       </section>
 
       {/* Footer - Minimal */}
-      <footer className="bg-white py-12 px-6 border-t border-gray-50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition">
-            <span className="text-2xl">🌱</span>
-            <span className="text-lg font-bold text-gray-900">EduPlatform</span>
-          </div>
-          <div className="flex gap-8 text-gray-400 text-sm font-medium">
-            <Link href="#" className="hover:text-gray-900 transition">Privacy</Link>
-            <Link href="#" className="hover:text-gray-900 transition">Terms</Link>
-            <Link href="#" className="hover:text-gray-900 transition">Support</Link>
-          </div>
-          <div className="text-gray-300 text-sm">
-            © 2024 EduPlatform Inc.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
