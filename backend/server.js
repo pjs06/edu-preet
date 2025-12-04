@@ -24,20 +24,41 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // Routes
+const { authenticateJWT, trackActivity } = require('./middleware/authMiddleware');
+
+// Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/students', require('./routes/students'));
+app.use('/api/admin', require('./routes/admin'));
+
+app.use('/api/content', require('./routes/content_generator'));
+app.use('/api/learning', require('./routes/learning'));
 app.use('/api/curriculum', require('./routes/curriculum'));
+
+// Protected Routes Middleware
+// Apply to all subsequent /api routes
+app.use('/api', authenticateJWT, trackActivity);
+
+app.use('/api/students', require('./routes/students'));
+
 app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/adaptive', require('./routes/adaptive'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/analytics', require('./routes/analytics'));
+
+
 
 app.get('/', (req, res) => {
     res.send('Educational Platform API is running');
 });
 
 // Start Server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+// Start Server
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
+
+module.exports = app;
 
 

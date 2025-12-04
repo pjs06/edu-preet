@@ -1,0 +1,40 @@
+[dotenv@17.2.3] injecting env (5) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+Server running on port 5001
+Connected to PostgreSQL database
+Database connected successfully
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist
+Admin Auth Check:
+Received Key: secret_admin_pass
+Expected Key: secret_admin_pass
+Auth Success
+column "updated_at" does not exist

@@ -3,12 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const router = express.Router();
-
-// Database connection (can be imported from a shared module, but for now using a new pool or passing it)
-// Ideally, we should export the pool from server.js or a db.js file.
-// For this step, I will assume we create a db.js file to share the pool.
-
 const { pool } = require('../db');
+const { updateRetentionCohort } = require('../utils/analytics');
 
 // Signup (Parents only)
 router.post('/signup', async (req, res) => {
@@ -97,8 +93,58 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid Credentials' });
         }
 
+        // Create Session
+        const { deviceType, browser, os, ipAddress } = req.body;
+        const sessionToken = require('crypto').randomBytes(32).toString('hex'); // Generate a session token
+
+        const sessionResult = await pool.query(`
+            INSERT INTO user_sessions (
+                user_id, 
+                device_type, 
+                browser, 
+                os, 
+                ip_address,
+                user_agent,
+                session_token,
+                status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+            RETURNING id`,
+            [
+                user.id,
+                deviceType || 'unknown',
+                browser || 'unknown',
+                os || 'unknown',
+                ipAddress || req.ip,
+                req.headers['user-agent'],
+                sessionToken
+            ]
+        );
+        const sessionId = sessionResult.rows[0].id;
+
+        // Log Login Activity
+        await pool.query(`
+            INSERT INTO user_activity_log (
+                user_id,
+                session_id,
+                event_type,
+                event_category,
+                event_action,
+                metadata
+            )
+            VALUES ($1, $2, 'auth', 'authentication', 'login', $3)`,
+            [
+                user.id,
+                sessionId,
+                JSON.stringify({ deviceType, browser })
+            ]
+        );
+
+        // Update Retention Cohort
+        await updateRetentionCohort(user.id);
+
         let profileData = {};
-        let tokenPayload = { userId: user.id, role: user.role };
+        let tokenPayload = { userId: user.id, role: user.role, sessionId: sessionId }; // Add sessionId to token
 
         if (user.role === 'parent') {
             const parentResult = await pool.query('SELECT id, name FROM parents WHERE user_id = $1', [user.id]);
@@ -118,14 +164,26 @@ router.post('/login', async (req, res) => {
         // Generate token
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
+        const userResponse = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            name: profileData.name
+        };
+
+        if (user.role === 'parent') {
+            userResponse.parentId = profileData.id;
+        } else if (user.role === 'student') {
+            userResponse.studentId = profileData.id;
+            userResponse.parentId = profileData.parent_id;
+            userResponse.grade = profileData.grade;
+            userResponse.language = profileData.language;
+        }
+
         res.json({
             token,
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                ...profileData
-            }
+            sessionId,
+            user: userResponse
         });
 
     } catch (err) {
@@ -139,6 +197,53 @@ router.post('/logout', (req, res) => {
     // In a stateless JWT setup, the client just deletes the token.
     // We can add a blacklist here in the future.
     res.json({ message: 'Logged out successfully' });
+});
+
+// Get Current User (Session Restoration)
+router.get('/me', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const userResult = await pool.query('SELECT id, email, role FROM users WHERE id = $1', [decoded.userId]);
+        if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        const user = userResult.rows[0];
+
+        let profileData = {};
+        const userResponse = {
+            id: user.id,
+            email: user.email,
+            role: user.role
+        };
+
+        if (user.role === 'parent') {
+            const parentResult = await pool.query('SELECT id, name FROM parents WHERE user_id = $1', [user.id]);
+            if (parentResult.rows.length > 0) {
+                profileData = parentResult.rows[0];
+                userResponse.name = profileData.name;
+                userResponse.parentId = profileData.id;
+            }
+        } else if (user.role === 'student') {
+            const studentResult = await pool.query('SELECT id, parent_id, name, grade, language FROM students WHERE user_id = $1', [user.id]);
+            if (studentResult.rows.length > 0) {
+                profileData = studentResult.rows[0];
+                userResponse.name = profileData.name;
+                userResponse.studentId = profileData.id;
+                userResponse.parentId = profileData.parent_id;
+                userResponse.grade = profileData.grade;
+                userResponse.language = profileData.language;
+            }
+        }
+
+        res.json({ user: userResponse });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(401).json({ error: 'Invalid token' });
+    }
 });
 
 module.exports = router;

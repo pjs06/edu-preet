@@ -3,66 +3,90 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ProfileDropdown from '../../../components/ProfileDropdown';
-import styles from '../../../styles/StudentDashboard.module.css';
 
 export default function StudentDashboard() {
     const [user, setUser] = useState<any>(null);
+    const [parentSession, setParentSession] = useState<any>(null);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
+
+        const storedParent = localStorage.getItem('parentSession');
+        if (storedParent) {
+            setParentSession(JSON.parse(storedParent));
+        }
     }, []);
 
-    if (!user) return <div className="p-8">Loading...</div>;
+    const handleBackToParent = () => {
+        if (parentSession) {
+            localStorage.setItem('user', JSON.stringify(parentSession));
+            localStorage.removeItem('parentSession');
+            window.location.href = '/dashboard/parent';
+        }
+    };
+
+    if (!user) return <div className="min-h-screen flex items-center justify-center bg-[var(--background)] text-[var(--foreground)]">Loading...</div>;
 
     return (
-        <div className={styles.container}>
+        <div className="min-h-screen bg-[var(--background)] font-sans">
             {/* Top Navigation */}
-            <nav className={styles.nav}>
-                <div className={styles.logo}>EduPlatform</div>
-                <div className={styles.navLinks}>
-                    <Link href="/dashboard/student" className={styles.navLinkActive}>Home</Link>
-                    <Link href="#" className={styles.navLink}>My Progress</Link>
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <div className="text-2xl">🌱</div>
+                    <div className="text-xl font-bold text-gray-800 tracking-tight">EduPlatform</div>
+                </div>
+                <div className="flex items-center gap-6">
+                    {parentSession && (
+                        <button
+                            onClick={handleBackToParent}
+                            className="mr-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold hover:bg-indigo-200 transition"
+                        >
+                            ← Back to Parent Dashboard
+                        </button>
+                    )}
+                    <Link href="/dashboard/student" className="text-[var(--primary)] font-semibold">Home</Link>
+                    <Link href="#" className="text-gray-500 hover:text-[var(--primary)] transition">My Progress</Link>
                     <ProfileDropdown user={user} colorClass="bg-purple-100 text-purple-700 border-2 border-purple-200" />
                 </div>
             </nav>
 
-            <main className={styles.main}>
+            <main className="max-w-5xl mx-auto p-6 md:p-8">
                 {/* Welcome Banner */}
-                <header className={styles.welcomeBanner}>
-                    <div className={styles.bannerContent}>
-                        <h1 className={styles.bannerTitle}>Welcome back, {user.name || 'Student'}! 🎉</h1>
-                        <p className={styles.bannerSubtitle}>Ready to learn something new today?</p>
-                        <div className={styles.statsContainer}>
-                            <div className={styles.statBox}>
-                                <span className={styles.statValue}>5</span>
-                                <span className={styles.statLabel}>Day Streak 🔥</span>
+                <header className="relative bg-gradient-to-r from-blue-500 to-purple-600 rounded-[2rem] p-8 md:p-12 text-white shadow-xl mb-10 overflow-hidden animate-fade-in-up">
+                    <div className="relative z-10">
+                        <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {user.name || 'Student'}! 🎉</h1>
+                        <p className="text-blue-100 text-lg mb-8">Ready to learn something new today?</p>
+                        <div className="flex gap-6">
+                            <div className="bg-white/20 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10">
+                                <span className="block text-2xl font-bold">5</span>
+                                <span className="text-sm text-blue-100">Day Streak 🔥</span>
                             </div>
-                            <div className={styles.statBox}>
-                                <span className={styles.statValue}>12</span>
-                                <span className={styles.statLabel}>Concepts Mastered 🏆</span>
+                            <div className="bg-white/20 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10">
+                                <span className="block text-2xl font-bold">12</span>
+                                <span className="text-sm text-blue-100">Concepts Mastered 🏆</span>
                             </div>
                         </div>
                     </div>
                     {/* Decorative circles */}
-                    <div className={styles.decorativeCircle1}></div>
-                    <div className={styles.decorativeCircle2}></div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="absolute bottom-0 right-20 w-32 h-32 bg-white/10 rounded-full -mb-10 blur-xl"></div>
                 </header>
 
                 {/* Continue Learning Card */}
-                <section className={styles.continueLearningSection}>
-                    <h2 className={styles.sectionTitle}>Continue Learning</h2>
-                    <div className={`${styles.continueCard} group`}>
-                        <div className={styles.continueCardContent}>
-                            <div className={styles.subjectTag}>Math • Class 4</div>
-                            <h3 className={styles.topicTitle}>Fractions and Decimals</h3>
-                            <p className={styles.nextTopic}>Next: Comparing Fractions</p>
+                <section className="mb-12 animate-fade-in-up delay-100">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Continue Learning</h2>
+                    <div className="group bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row justify-between items-center hover:shadow-xl hover:shadow-blue-100/50 transition duration-300 cursor-pointer">
+                        <div className="mb-6 md:mb-0">
+                            <div className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-1">Math • Class 4</div>
+                            <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition">Fractions and Decimals</h3>
+                            <p className="text-gray-500 mt-1">Next: Comparing Fractions</p>
                         </div>
                         <Link
                             href="/learn?sessionId=new"
-                            className={styles.continueBtn}
+                            className="px-8 py-3 bg-green-500 text-white rounded-xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 hover:shadow-xl hover:shadow-green-300 transition transform group-hover:scale-105"
                         >
                             Continue →
                         </Link>
@@ -70,61 +94,61 @@ export default function StudentDashboard() {
                 </section>
 
                 {/* Subject Selection */}
-                <section className={styles.continueLearningSection}>
-                    <h2 className={styles.sectionTitle}>Your Subjects</h2>
-                    <div className={styles.subjectsGrid}>
+                <section className="mb-12 animate-fade-in-up delay-200">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Your Subjects</h2>
+                    <div className="grid md:grid-cols-3 gap-6">
                         {/* Math */}
-                        <div className={styles.subjectCard}>
-                            <div className={`${styles.subjectIcon} ${styles.iconMath}`}>📐</div>
-                            <h3 className={styles.subjectName}>Math</h3>
-                            <div className={styles.progressBarContainer}>
-                                <div className={`${styles.progressBar} ${styles.progressMath}`} style={{ width: '60%' }}></div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:shadow-blue-100/50 transition duration-300 group">
+                            <div className="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">📐</div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Math</h3>
+                            <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '60%' }}></div>
                             </div>
-                            <button className={`${styles.startBtn} ${styles.btnMath}`}>
+                            <Link href="/dashboard/student/math" className="block w-full py-2 text-center border-2 border-blue-100 text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition">
                                 Start
-                            </button>
+                            </Link>
                         </div>
                         {/* Science */}
-                        <div className={styles.subjectCard}>
-                            <div className={`${styles.subjectIcon} ${styles.iconScience}`}>🔬</div>
-                            <h3 className={styles.subjectName}>Science</h3>
-                            <div className={styles.progressBarContainer}>
-                                <div className={`${styles.progressBar} ${styles.progressScience}`} style={{ width: '30%' }}></div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:shadow-green-100/50 transition duration-300 group">
+                            <div className="w-14 h-14 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">🔬</div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Science</h3>
+                            <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                                <div className="bg-green-600 h-2 rounded-full" style={{ width: '30%' }}></div>
                             </div>
-                            <button className={`${styles.startBtn} ${styles.btnScience}`}>
+                            <Link href="/dashboard/student/science" className="block w-full py-2 text-center border-2 border-green-100 text-green-600 rounded-lg font-bold hover:bg-green-50 transition">
                                 Start
-                            </button>
+                            </Link>
                         </div>
                         {/* Hindi */}
-                        <div className={styles.subjectCard}>
-                            <div className={`${styles.subjectIcon} ${styles.iconHindi}`}>📚</div>
-                            <h3 className={styles.subjectName}>Hindi</h3>
-                            <div className={styles.progressBarContainer}>
-                                <div className={`${styles.progressBar} ${styles.progressHindi}`} style={{ width: '90%' }}></div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:shadow-orange-100/50 transition duration-300 group">
+                            <div className="w-14 h-14 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">📚</div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Hindi</h3>
+                            <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                                <div className="bg-orange-600 h-2 rounded-full" style={{ width: '90%' }}></div>
                             </div>
-                            <button className={`${styles.startBtn} ${styles.btnHindi}`}>
+                            <Link href="/dashboard/student/hindi" className="block w-full py-2 text-center border-2 border-orange-100 text-orange-600 rounded-lg font-bold hover:bg-orange-50 transition">
                                 Start
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </section>
 
                 {/* Achievements */}
-                <section>
-                    <h2 className={styles.sectionTitle}>Recent Achievements</h2>
-                    <div className={styles.achievementsContainer}>
-                        <div className={`${styles.achievementCard} ${styles.cardYellow}`}>
-                            <div className={styles.achievementIcon}>🏆</div>
+                <section className="animate-fade-in-up delay-300">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Achievements</h2>
+                    <div className="flex gap-4 overflow-x-auto pb-4">
+                        <div className="flex-shrink-0 w-64 bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex items-center gap-3">
+                            <div className="text-3xl">🏆</div>
                             <div>
-                                <p className={`${styles.achievementTitle} ${styles.textYellow}`}>First Concept</p>
-                                <p className={`${styles.achievementDesc} ${styles.descYellow}`}>Completed!</p>
+                                <p className="font-bold text-yellow-900">First Concept</p>
+                                <p className="text-xs text-yellow-700">Completed!</p>
                             </div>
                         </div>
-                        <div className={`${styles.achievementCard} ${styles.cardPurple}`}>
-                            <div className={styles.achievementIcon}>⚡</div>
+                        <div className="flex-shrink-0 w-64 bg-purple-50 border border-purple-100 rounded-xl p-4 flex items-center gap-3">
+                            <div className="text-3xl">⚡</div>
                             <div>
-                                <p className={`${styles.achievementTitle} ${styles.textPurple}`}>Speed Learner</p>
-                                <p className={`${styles.achievementDesc} ${styles.descPurple}`}>3 concepts in 15m</p>
+                                <p className="font-bold text-purple-900">Speed Learner</p>
+                                <p className="text-xs text-purple-700">3 concepts in 15m</p>
                             </div>
                         </div>
                     </div>

@@ -4,241 +4,414 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../../styles/Learn.module.css';
+import { ContentPath, Question } from './data';
 
-type SessionState = 'INTRODUCTION' | 'CHECKPOINT' | 'FEEDBACK' | 'COMPLETED';
+type SessionState = 'LOADING' | 'VIDEO' | 'TEST' | 'RESULT' | 'REMEDIAL_SELECTION' | 'COMPLETED' | 'ERROR';
 
 function LearnContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const sessionId = searchParams.get('sessionId');
+    const studentId = 'student_uuid_placeholder'; // In real app, get from auth context
+    const conceptId = 'module_001'; // Hardcoded for demo, usually from URL params
 
-    const [state, setState] = useState<SessionState>('INTRODUCTION');
-    const [loading, setLoading] = useState(true);
+    // State
+    const [state, setState] = useState<SessionState>('LOADING');
+    const [contentData, setContentData] = useState<Record<string, ContentPath> | null>(null);
+    const [currentPath, setCurrentPath] = useState<ContentPath | null>(null);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [answers, setAnswers] = useState<Record<string, string>>({}); // questionId -> answerId
+    const [score, setScore] = useState(0);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
-    // Mock Data
-    const [concept, setConcept] = useState<any>(null);
-    const [timer, setTimer] = useState(0);
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
-    const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-
+    // Fetch Content & Start Session
     useEffect(() => {
-        // Simulate fetching session data
-        setTimeout(() => {
-            setConcept({
-                title: 'Introduction to Fractions',
-                explanation: "Imagine you have a pizza. If you cut it into 4 equal slices and eat 1 slice, you have eaten 1/4 of the pizza. The bottom number (4) is the total parts, and the top number (1) is how many parts we are talking about.",
-                visual: "🍕",
-                question: "If you divide a chocolate bar into 4 equal parts and give 1 part to a friend, what fraction did you give?",
-                options: [
-                    { id: 'A', text: '1/2' },
-                    { id: 'B', text: '1/4' },
-                    { id: 'C', text: '1/3' },
-                    { id: 'D', text: '2/4' }
-                ],
-                correctAnswer: 'B',
-                correctFeedback: "Excellent! You got it right! 1/4 means 1 part out of 4 equal parts.",
-                incorrectFeedback: "Not quite. Remember, the bottom number represents the TOTAL number of pieces. Since there are 4 pieces in total, the bottom number should be 4."
+        const initSession = async () => {
+            try {
+                // 1. Fetch Content
+                const contentRes = await fetch(`http://localhost:5001/api/learning/content/${conceptId}`);
+                if (!contentRes.ok) throw new Error('Failed to load content');
+                const data = await contentRes.json();
+                setContentData(data);
+                setCurrentPath(data.MAIN);
+
+                // 2. Start Session (Backend Tracking)
+                const startRes = await fetch('http://localhost:5001/api/learning/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId,
+                        subject: 'Science',
+                        grade: 8,
+                        chapterId: 'chapter_uuid_placeholder', // Optional
+                        conceptId
+                    })
+                });
+                const startData = await startRes.json();
+                setSessionId(startData.learningSessionId);
+
+                setState('VIDEO');
+            } catch (err) {
+                console.error(err);
+                setState('ERROR');
+            }
+        };
+
+        initSession();
+    }, [conceptId]);
+
+    const handleVideoComplete = async () => {
+        // Track video completion
+        if (sessionId && currentPath) {
+            await fetch('http://localhost:5001/api/learning/progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId,
+                    studentId,
+                    type: 'video_complete',
+                    data: { duration: 300 } // Mock duration
+                })
             });
-            setLoading(false);
-        }, 1000);
-    }, []);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (state === 'CHECKPOINT') {
-            interval = setInterval(() => {
-                setTimer(prev => prev + 1);
-            }, 1000);
         }
-        return () => clearInterval(interval);
-    }, [state]);
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        setState('TEST');
+        setCurrentQuestionIndex(0);
+        setAnswers({});
+        setScore(0);
+        setShowFeedback(false);
     };
 
-    const handleStartCheckpoint = () => {
-        setState('CHECKPOINT');
-        setTimer(0);
+    const handleAnswerSelect = (optionId: string) => {
+        if (showFeedback || !currentPath) return;
+
+        const currentQuestion = currentPath.questions[currentQuestionIndex];
+        setAnswers(prev => ({ ...prev, [currentQuestion.id]: optionId }));
     };
 
     const handleSubmitAnswer = () => {
-        if (!selectedOption) return;
-
-        const correct = selectedOption === concept.correctAnswer;
-        setIsCorrect(correct);
-        setState('FEEDBACK');
+        setShowFeedback(true);
     };
 
-    const handleNext = () => {
-        if (isCorrect) {
-            setState('COMPLETED');
+    const handleNextQuestion = () => {
+        if (!currentPath) return;
+        const currentQuestion = currentPath.questions[currentQuestionIndex];
+        const selectedAnswer = answers[currentQuestion.id];
+
+        // Update score if correct
+        if (selectedAnswer === currentQuestion.correctAnswer) {
+            setScore(prev => prev + 1);
+        }
+
+        setShowFeedback(false);
+
+        if (currentQuestionIndex < currentPath.questions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
         } else {
-            // Remedial path - for now just restart intro with same content but could be different
-            setState('INTRODUCTION');
-            setSelectedOption(null);
-            setIsCorrect(null);
+            // End of test - calculate final result
+            // We need to include the last question in the score calculation if we haven't already
+            // Actually, the score update above happens before this check, but state updates are async.
+            // Better to calculate score from answers map at the end.
+            finishTest();
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">Loading learning session...</div>;
+    const finishTest = async () => {
+        if (!currentPath) return;
+
+        // Calculate final score based on all answers
+        let finalScore = 0;
+        currentPath.questions.forEach(q => {
+            if (answers[q.id] === q.correctAnswer) {
+                finalScore++;
+            }
+        });
+        setScore(finalScore);
+
+        const passed = finalScore >= 2; // Pass threshold
+
+        // Track test attempt
+        if (sessionId) {
+            await fetch('http://localhost:5001/api/learning/progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId,
+                    studentId,
+                    type: 'test_attempt',
+                    data: {
+                        conceptId,
+                        pathType: currentPath.type,
+                        passed,
+                        timeTaken: 120, // Mock time
+                        answers
+                    }
+                })
+            });
+        }
+
+        setState('RESULT');
+    };
+
+    const handleRemedialSelection = (type: 'STORY' | 'ANALOGY') => {
+        if (contentData) {
+            setCurrentPath(contentData[type]);
+            setState('VIDEO');
+        }
+    };
+
+    const handleRetryMain = () => {
+        if (contentData) {
+            setCurrentPath(contentData.MAIN);
+            setState('VIDEO');
+        }
+    }
+
+    const handleCompleteLesson = async () => {
+        if (sessionId) {
+            await fetch('http://localhost:5001/api/learning/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId,
+                    studentId,
+                    conceptId,
+                    mastered: true
+                })
+            });
+        }
+        setState('COMPLETED');
+    };
+
+    // Render Helpers
+    if (state === 'LOADING') return <div className="min-h-screen flex items-center justify-center text-xl">Loading learning session...</div>;
+    if (state === 'ERROR') return <div className="min-h-screen flex items-center justify-center text-xl text-red-600">Error loading content. Please ensure backend is running and seeded.</div>;
+    if (!currentPath) return null;
+
+    const currentQuestion = currentPath.questions[currentQuestionIndex];
+    const isLastQuestion = currentQuestionIndex === currentPath.questions.length - 1;
+    const passed = score >= 2;
 
     return (
         <div className={styles.container}>
             {/* Top Bar */}
             <header className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>{concept.title}</h1>
-                    <div className={styles.progressBarContainer}>
-                        <div className={styles.progressBar} style={{ width: '30%' }}></div>
+                    <h1 className={styles.title}>{currentPath.title}</h1>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span className={`px-2 py-0.5 rounded ${currentPath.type === 'MAIN' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                            {currentPath.type === 'MAIN' ? 'Main Lesson' : currentPath.type === 'STORY' ? 'Story Mode' : 'Analogy Mode'}
+                        </span>
                     </div>
                 </div>
                 <div className={styles.controls}>
-                    {state === 'CHECKPOINT' && (
-                        <div className={styles.timer}>
-                            ⏱ {formatTime(timer)}
-                        </div>
-                    )}
-                    <button className={styles.controlBtn}>⏸</button>
                     <Link href="/dashboard/student" className={styles.closeBtn}>✕</Link>
                 </div>
             </header>
 
             <main className={styles.main}>
 
-                {/* STATE 1: INTRODUCTION */}
-                {state === 'INTRODUCTION' && (
-                    <div className={styles.introCard}>
-                        <div className={styles.introContent}>
-                            <div className={styles.visual}>{concept.visual}</div>
-                            <h2 className={styles.conceptTitle}>Concept Explanation</h2>
-                            <p className={styles.explanation}>
-                                {concept.explanation}
-                            </p>
+                {/* STATE: VIDEO */}
+                {state === 'VIDEO' && (
+                    <div className="max-w-4xl mx-auto w-full">
+                        <div className="bg-black aspect-video rounded-xl mb-6 flex items-center justify-center relative overflow-hidden shadow-lg">
+                            {/* Placeholder for Video Player */}
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={currentPath.videoUrl}
+                                title="Video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0"
+                            ></iframe>
+                        </div>
 
-                            {/* Audio Player Mock */}
-                            <div className={styles.audioPlayer}>
-                                <span className="text-blue-600 text-xl">🔊</span>
-                                <span className="text-gray-700 font-medium">Play Audio Explanation</span>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold mb-2">Watch: {currentPath.title}</h2>
+                                <p className="text-gray-600">{currentPath.description}</p>
                             </div>
-
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={handleStartCheckpoint}
-                                    className={styles.primaryBtn}
-                                >
-                                    I Understand, Next →
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleVideoComplete}
+                                className={styles.primaryBtn}
+                            >
+                                I've Watched It, Take Quiz →
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* STATE 2: CHECKPOINT */}
-                {state === 'CHECKPOINT' && (
+                {/* STATE: TEST */}
+                {state === 'TEST' && (
                     <div className={styles.checkpointCard}>
                         <div className={styles.checkpointHeader}>
                             <h2 className={styles.checkpointTitle}>
-                                <span className="mr-2">✅</span> Quick Check!
+                                <span className="mr-2">📝</span> Question {currentQuestionIndex + 1} of {currentPath.questions.length}
                             </h2>
+                            <div className="text-sm font-medium text-gray-500">
+                                Score: {Object.keys(answers).filter(qid => answers[qid] === currentPath.questions.find(q => q.id === qid)?.correctAnswer).length}
+                            </div>
                         </div>
+
                         <div className={styles.checkpointContent}>
-                            <p className={styles.question}>
-                                {concept.question}
-                            </p>
+                            <p className={styles.question}>{currentQuestion.text}</p>
 
                             <div className={styles.optionsContainer}>
-                                {concept.options.map((option: any) => (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => setSelectedOption(option.id)}
-                                        className={`${styles.optionBtn} ${selectedOption === option.id
-                                            ? styles.optionBtnSelected
-                                            : styles.optionBtnDefault
-                                            }`}
-                                    >
-                                        <span className={`${styles.optionLetter} ${selectedOption === option.id ? styles.optionLetterSelected : styles.optionLetterDefault
-                                            }`}>
-                                            {option.id}
-                                        </span>
-                                        <span className="text-lg">{option.text}</span>
-                                    </button>
-                                ))}
+                                {currentQuestion.options.map((option) => {
+                                    const isSelected = answers[currentQuestion.id] === option.id;
+                                    const isCorrect = option.id === currentQuestion.correctAnswer;
+
+                                    let btnClass = styles.optionBtnDefault;
+                                    if (showFeedback) {
+                                        if (isSelected && isCorrect) btnClass = styles.optionBtnCorrect;
+                                        else if (isSelected && !isCorrect) btnClass = styles.optionBtnIncorrect;
+                                        else if (!isSelected && isCorrect) btnClass = styles.optionBtnCorrect; // Show correct answer
+                                    } else if (isSelected) {
+                                        btnClass = styles.optionBtnSelected;
+                                    }
+
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => handleAnswerSelect(option.id)}
+                                            disabled={showFeedback}
+                                            className={`${styles.optionBtn} ${btnClass}`}
+                                        >
+                                            <span className={styles.optionLetter}>{option.id}</span>
+                                            <span className="text-lg">{option.text}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
-                            <button
-                                onClick={handleSubmitAnswer}
-                                disabled={!selectedOption}
-                                className={styles.submitBtn}
-                            >
-                                Submit Answer
-                            </button>
+                            {/* Feedback Area */}
+                            {showFeedback && (
+                                <div className={`mt-4 p-4 rounded-lg ${answers[currentQuestion.id] === currentQuestion.correctAnswer ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                                    <p className={`font-bold ${answers[currentQuestion.id] === currentQuestion.correctAnswer ? 'text-green-800' : 'text-red-800'}`}>
+                                        {answers[currentQuestion.id] === currentQuestion.correctAnswer ? 'Correct!' : 'Not quite.'}
+                                    </p>
+                                    <p className="text-gray-700 mt-1">{currentQuestion.rationale}</p>
+                                </div>
+                            )}
+
+                            <div className="mt-6 flex justify-end">
+                                {!showFeedback ? (
+                                    <button
+                                        onClick={handleSubmitAnswer}
+                                        disabled={!answers[currentQuestion.id]}
+                                        className={styles.submitBtn}
+                                    >
+                                        Submit Answer
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleNextQuestion}
+                                        className={styles.primaryBtn}
+                                    >
+                                        {isLastQuestion ? 'See Results' : 'Next Question →'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* STATE 3: FEEDBACK */}
-                {state === 'FEEDBACK' && (
-                    <div className={styles.feedbackCard}>
-                        <div className={`${styles.feedbackHeader} ${isCorrect ? styles.feedbackHeaderCorrect : styles.feedbackHeaderIncorrect}`}>
-                            <h2 className={`${styles.feedbackTitle} ${isCorrect ? styles.feedbackTitleCorrect : styles.feedbackTitleIncorrect}`}>
-                                <span className="mr-3 text-3xl">{isCorrect ? '🎉' : '😊'}</span>
-                                {isCorrect ? 'Excellent! You got it right!' : 'Not quite right, but that\'s okay!'}
-                            </h2>
-                        </div>
-                        <div className={styles.feedbackContent}>
-                            <p className={styles.feedbackText}>
-                                {isCorrect ? concept.correctFeedback : concept.incorrectFeedback}
+                {/* STATE: RESULT */}
+                {state === 'RESULT' && (
+                    <div className="max-w-2xl mx-auto text-center">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+                            <div className="text-6xl mb-4">{passed ? '🎉' : '🤔'}</div>
+                            <h2 className="text-3xl font-bold mb-2">{passed ? 'Great Job!' : 'Keep Going!'}</h2>
+                            <p className="text-xl text-gray-600 mb-6">
+                                You scored <span className={`font-bold ${passed ? 'text-green-600' : 'text-orange-500'}`}>{score}/{currentPath.questions.length}</span>
                             </p>
 
-                            <button
-                                onClick={handleNext}
-                                className={`${styles.continueBtn} ${isCorrect ? styles.continueBtnCorrect : styles.continueBtnIncorrect
-                                    }`}
+                            {passed ? (
+                                <div>
+                                    <p className="mb-8 text-gray-600">You've mastered this concept! You're ready to move on.</p>
+                                    <div className="flex justify-center gap-4">
+                                        <Link href="/dashboard/student" className={styles.secondaryBtn}>Back to Dashboard</Link>
+                                        <button onClick={handleCompleteLesson} className={styles.primaryBtn}>Complete Lesson</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p className="mb-8 text-gray-600">It looks like you missed a few key points. Let's try learning this in a different way!</p>
+                                    <button
+                                        onClick={() => setState('REMEDIAL_SELECTION')}
+                                        className={styles.primaryBtn}
+                                    >
+                                        See Other Ways to Learn →
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* STATE: REMEDIAL SELECTION */}
+                {state === 'REMEDIAL_SELECTION' && (
+                    <div className="max-w-4xl mx-auto">
+                        <h2 className="text-3xl font-bold text-center mb-8">Choose Your Path</h2>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Story Option */}
+                            <div
+                                onClick={() => handleRemedialSelection('STORY')}
+                                className="bg-white p-6 rounded-xl shadow-md border-2 border-transparent hover:border-purple-500 cursor-pointer transition-all hover:shadow-xl group"
                             >
-                                {isCorrect ? 'Continue to Next Concept →' : 'Let\'s Review This Concept ↺'}
+                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📖</div>
+                                <h3 className="text-xl font-bold mb-2">Story Mode</h3>
+                                <p className="text-gray-600 mb-4">Learn through a story about Rohan and his grandma's garden.</p>
+                                <span className="text-purple-600 font-medium group-hover:underline">Start Story →</span>
+                            </div>
+
+                            {/* Analogy Option */}
+                            <div
+                                onClick={() => handleRemedialSelection('ANALOGY')}
+                                className="bg-white p-6 rounded-xl shadow-md border-2 border-transparent hover:border-blue-500 cursor-pointer transition-all hover:shadow-xl group"
+                            >
+                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🏭</div>
+                                <h3 className="text-xl font-bold mb-2">Analogy Mode</h3>
+                                <p className="text-gray-600 mb-4">Understand how a leaf is like a solar-powered factory.</p>
+                                <span className="text-blue-600 font-medium group-hover:underline">Start Analogy →</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 text-center">
+                            <button onClick={handleRetryMain} className="text-gray-500 hover:text-gray-800 underline">
+                                Retry Main Lesson
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* STATE 4: COMPLETED */}
+                {/* STATE: COMPLETED */}
                 {state === 'COMPLETED' && (
                     <div className={styles.completedCard}>
                         <div className="text-6xl mb-6">⭐</div>
                         <h2 className={styles.completedTitle}>Concept Mastered!</h2>
-                        <p className={styles.completedSubtitle}>You completed: "{concept.title}"</p>
+                        <p className={styles.completedSubtitle}>You completed: "{contentData?.MAIN.title}"</p>
 
                         <div className={styles.statsGrid}>
                             <div className={styles.statItem}>
-                                <p className={styles.statLabel}>Time</p>
-                                <p className={styles.statValue}>2m 15s</p>
+                                <p className={styles.statLabel}>Total XP</p>
+                                <p className={`${styles.statValue} ${styles.statValuePurple}`}>+50 XP</p>
                             </div>
                             <div className={styles.statItem}>
-                                <p className={styles.statLabel}>Accuracy</p>
-                                <p className={`${styles.statValue} ${styles.statValueGreen}`}>100%</p>
-                            </div>
-                            <div className={styles.statItem}>
-                                <p className={styles.statLabel}>XP Earned</p>
-                                <p className={`${styles.statValue} ${styles.statValuePurple}`}>+10 XP</p>
+                                <p className={styles.statLabel}>Status</p>
+                                <p className={`${styles.statValue} ${styles.statValueGreen}`}>Passed</p>
                             </div>
                         </div>
 
                         <div className={styles.actionButtons}>
                             <Link
                                 href="/dashboard/student"
-                                className={styles.secondaryBtn}
+                                className={styles.primaryBtn}
                             >
-                                Take a Break ☕
+                                Back to Dashboard
                             </Link>
-                            <button
-                                onClick={() => alert("Next concept would load here!")}
-                                className={styles.nextConceptBtn}
-                            >
-                                Next Concept →
-                            </button>
                         </div>
                     </div>
                 )}

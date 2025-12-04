@@ -1,0 +1,59 @@
+{
+    "title": "8th Grade Science Curriculum",
+    "grade": 8,
+    "language": "english",
+    "modules": [
+        {
+            "module_id": "module_001",
+            "title": "Photosynthesis",
+            "description": "Understand how plants create their own food using sunlight.",
+            "learning_objectives": [
+                "Define photosynthesis",
+                "Identify inputs and outputs",
+                "Explain the role of chlorophyll"
+            ],
+            "chunk_ids": [
+                "chunk_1",
+                "chunk_2"
+            ],
+            "estimated_time_seconds": 1800,
+            "assessment": {
+                "type": "quiz",
+                "question_count": 5
+            },
+            "prerequisites": [
+                "Basic Plant Biology"
+            ],
+            "tags": [
+                "biology",
+                "plants",
+                "energy"
+            ]
+        },
+        {
+            "module_id": "module_002",
+            "title": "Cellular Respiration",
+            "description": "Learn how cells break down food to release energy.",
+            "learning_objectives": [
+                "Define cellular respiration",
+                "Compare with photosynthesis"
+            ],
+            "chunk_ids": [
+                "chunk_3"
+            ],
+            "estimated_time_seconds": 1800,
+            "assessment": {
+                "type": "quiz",
+                "question_count": 5
+            },
+            "prerequisites": [
+                "Photosynthesis"
+            ],
+            "tags": [
+                "biology",
+                "cells",
+                "energy"
+            ]
+        }
+    ]
+}
