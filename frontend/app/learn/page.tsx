@@ -5,14 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../../styles/Learn.module.css';
 import { ContentPath, Question } from './data';
+import ReactMarkdown from 'react-markdown';
 
-type SessionState = 'LOADING' | 'VIDEO' | 'TEST' | 'RESULT' | 'REMEDIAL_SELECTION' | 'COMPLETED' | 'ERROR';
+type SessionState = 'LOADING' | 'VIDEO' | 'LESSON' | 'TEST' | 'RESULT' | 'REMEDIAL_SELECTION' | 'COMPLETED' | 'ERROR';
 
 function LearnContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const studentId = 'student_uuid_placeholder'; // In real app, get from auth context
-    const conceptId = 'module_001'; // Hardcoded for demo, usually from URL params
+    const [studentId, setStudentId] = useState<string | null>(null);
+    const conceptId = searchParams.get('conceptId') || 'module_001';
 
     // State
     const [state, setState] = useState<SessionState>('LOADING');
@@ -24,12 +25,55 @@ function LearnContent() {
     const [showFeedback, setShowFeedback] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
 
-    // Fetch Content & Start Session
+    // Fetch Student ID first
     useEffect(() => {
+        const fetchStudentId = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    router.push('/login');
+                    return;
+                }
+
+                // Fetch user profile to get student ID
+                // Assuming /api/auth/me or similar returns the user and linked student info
+                // Or we can fetch from a dedicated student endpoint
+                const res = await fetch('/api/assessment/status', { // Re-using this endpoint as it returns student info
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.studentId) {
+                        setStudentId(data.studentId);
+                    } else {
+                        console.error('No student ID found');
+                        setState('ERROR');
+                    }
+                } else {
+                    console.error('Failed to fetch student info');
+                    setState('ERROR');
+                }
+            } catch (err) {
+                console.error('Error fetching student ID', err);
+                setState('ERROR');
+            }
+        };
+
+        fetchStudentId();
+    }, [router]);
+
+    // Fetch Content & Start Session (Only after studentId is available)
+    useEffect(() => {
+        if (!studentId) return;
+
         const initSession = async () => {
             try {
                 // 1. Fetch Content
-                const contentRes = await fetch(`/api/learning/content/${conceptId}`);
+                const token = localStorage.getItem('token');
+                const contentRes = await fetch(`/api/learning/content/${encodeURIComponent(conceptId)}?studentId=${studentId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!contentRes.ok) throw new Error('Failed to load content');
                 const data = await contentRes.json();
                 setContentData(data);
@@ -38,19 +82,22 @@ function LearnContent() {
                 // 2. Start Session (Backend Tracking)
                 const startRes = await fetch('/api/learning/start', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         studentId,
                         subject: 'Science',
-                        grade: 8,
-                        chapterId: 'chapter_uuid_placeholder', // Optional
+                        grade: 9, // Defaulting to 9 for now as per curriculum
+                        chapterId: searchParams.get('chapterId') || null, // Use URL param or null
                         conceptId
                     })
                 });
                 const startData = await startRes.json();
                 setSessionId(startData.learningSessionId);
 
-                setState('VIDEO');
+                setState('LESSON'); // Text-first learning
             } catch (err) {
                 console.error(err);
                 setState('ERROR');
@@ -58,14 +105,17 @@ function LearnContent() {
         };
 
         initSession();
-    }, [conceptId]);
+    }, [conceptId, studentId]);
 
     const handleVideoComplete = async () => {
         // Track video completion
         if (sessionId && currentPath) {
             await fetch('/api/learning/progress', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify({
                     sessionId,
                     studentId,
@@ -134,7 +184,10 @@ function LearnContent() {
         if (sessionId) {
             await fetch('/api/learning/progress', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify({
                     sessionId,
                     studentId,
@@ -171,7 +224,10 @@ function LearnContent() {
         if (sessionId) {
             await fetch('/api/learning/complete', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify({
                     sessionId,
                     studentId,
@@ -211,33 +267,29 @@ function LearnContent() {
 
             <main className={styles.main}>
 
-                {/* STATE: VIDEO */}
-                {state === 'VIDEO' && (
+                {/* STATE: LESSON (Text First) */}
+                {(state === 'VIDEO' || state === 'LESSON') && (
                     <div className="max-w-4xl mx-auto w-full">
-                        <div className="bg-black aspect-video rounded-xl mb-6 flex items-center justify-center relative overflow-hidden shadow-lg">
-                            {/* Placeholder for Video Player */}
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                src={currentPath.videoUrl}
-                                title="Video player"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="absolute inset-0"
-                            ></iframe>
+                        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 md:p-12 mb-8 animate-fade-in-up">
+                            <div className="prose prose-lg max-w-none">
+                                <h2 className="text-3xl font-bold text-gray-900 mb-6">{currentPath.title}</h2>
+                                <div className="bg-blue-50 rounded-xl p-6 mb-8 text-blue-800 font-medium">
+                                    <ReactMarkdown>
+                                        {currentPath.textContent || "Loading lesson content..."}
+                                    </ReactMarkdown>
+                                </div>
+                                <p className="text-gray-600 italic">
+                                    Read through the lesson above. When you're ready, take the quiz to test your knowledge!
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h2 className="text-2xl font-bold mb-2">Watch: {currentPath.title}</h2>
-                                <p className="text-gray-600">{currentPath.description}</p>
-                            </div>
+                        <div className="flex justify-end items-center">
                             <button
                                 onClick={handleVideoComplete}
-                                className={styles.primaryBtn}
+                                className={`${styles.primaryBtn} text-lg px-8 py-4 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition`}
                             >
-                                I've Watched It, Take Quiz →
+                                I'm Ready for the Quiz →
                             </button>
                         </div>
                     </div>

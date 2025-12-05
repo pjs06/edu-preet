@@ -50,28 +50,32 @@ export default function ChapterPage() {
                             No concepts found in this chapter.
                         </div>
                     ) : (
-                        concepts.map((concept, index) => (
-                            <Link
-                                key={index}
-                                // For demo purposes, we link directly to the adaptive learn page
-                                // In a real app, we would use the actual concept.id
-                                href={`/learn?conceptId=module_001&sessionId=demo_${Date.now()}`}
-                                className="block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group"
-                            >
-                                <div className="flex items-start">
-                                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-4 group-hover:bg-blue-600 group-hover:text-white transition">
-                                        {index + 1}
+                        concepts.map((concept, index) => {
+                            // Handle both string concepts (from new seed) and object concepts (legacy)
+                            const title = typeof concept === 'string' ? concept : (concept.title || concept.name);
+                            const description = typeof concept === 'string' ? 'Click to start learning this topic.' : concept.description;
+
+                            return (
+                                <Link
+                                    key={index}
+                                    href={`/learn?conceptId=${encodeURIComponent(title)}`}
+                                    className="block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group"
+                                >
+                                    <div className="flex items-start">
+                                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-4 group-hover:bg-blue-600 group-hover:text-white transition">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-grow">
+                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition">{title}</h3>
+                                            <p className="text-gray-600 text-sm mt-1">{description}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 self-center">
+                                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Start Learning</span>
+                                        </div>
                                     </div>
-                                    <div className="flex-grow">
-                                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition">{concept.title || concept.name}</h3>
-                                        <p className="text-gray-600 text-sm mt-1">{concept.description}</p>
-                                    </div>
-                                    <div className="flex-shrink-0 self-center">
-                                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Start Learning</span>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))
+                                </Link>
+                            );
+                        })
                     )}
                 </div>
             </div>

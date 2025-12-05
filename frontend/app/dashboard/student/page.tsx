@@ -7,11 +7,15 @@ import ProfileDropdown from '../../../components/ProfileDropdown';
 export default function StudentDashboard() {
     const [user, setUser] = useState<any>(null);
     const [parentSession, setParentSession] = useState<any>(null);
+    const [assessmentStatus, setAssessmentStatus] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            checkAssessmentStatus(parsedUser);
         }
 
         const storedParent = localStorage.getItem('parentSession');
@@ -19,6 +23,22 @@ export default function StudentDashboard() {
             setParentSession(JSON.parse(storedParent));
         }
     }, []);
+
+    const checkAssessmentStatus = async (currentUser: any) => {
+        try {
+            const studentId = currentUser.role === 'student' ? (currentUser.studentId || currentUser.id) : currentUser.id;
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/assessment/status?studentId=${studentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setAssessmentStatus(data);
+        } catch (err) {
+            console.error('Failed to check assessment status', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleBackToParent = () => {
         if (parentSession) {
@@ -28,7 +48,34 @@ export default function StudentDashboard() {
         }
     };
 
-    if (!user) return <div className="min-h-screen flex items-center justify-center bg-[var(--background)] text-[var(--foreground)]">Loading...</div>;
+    if (loading || !user) return (
+        <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)]"></div>
+        </div>
+    );
+
+    // Blocking Assessment View
+    if (assessmentStatus && !assessmentStatus.completed) {
+        return (
+            <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
+                <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-xl p-8 md:p-12 text-center animate-fade-in-up">
+                    <div className="text-6xl mb-6">🚀</div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Your Learning Journey!</h1>
+                    <p className="text-xl text-gray-600 mb-8">
+                        Before we start, let's discover your unique <strong>Learning Superpower</strong>.
+                        This quick quiz helps us personalize your lessons just for you!
+                    </p>
+
+                    <Link
+                        href="/dashboard/student/assessment"
+                        className="inline-block px-8 py-4 bg-[var(--primary)] text-white rounded-xl font-bold shadow-lg shadow-orange-200 hover:bg-[var(--primary-hover)] transition transform hover:-translate-y-1"
+                    >
+                        Start My Quiz →
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[var(--background)] font-sans">
@@ -74,6 +121,41 @@ export default function StudentDashboard() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                     <div className="absolute bottom-0 right-20 w-32 h-32 bg-white/10 rounded-full -mb-10 blur-xl"></div>
                 </header>
+
+                {/* Learning Profile Card (Only if completed) */}
+                {assessmentStatus?.completed && (
+                    <section className="mb-12 animate-fade-in-up delay-75">
+                        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 relative overflow-hidden">
+                            <div className="flex flex-col md:flex-row items-center gap-8">
+                                <div className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-4xl">
+                                    {assessmentStatus.profile.primaryStyle.includes('visual') ? '👀' :
+                                        assessmentStatus.profile.primaryStyle.includes('auditory') ? '👂' :
+                                            assessmentStatus.profile.primaryStyle.includes('kinesthetic') ? '✋' : '📚'}
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                        You are a {assessmentStatus.profile.primaryStyle.replace('_', ' & ')} Learner!
+                                    </h2>
+                                    <p className="text-gray-600 text-lg">
+                                        We've customized your lessons with more
+                                        {assessmentStatus.profile.primaryStyle.includes('visual') ? ' videos and diagrams' :
+                                            assessmentStatus.profile.primaryStyle.includes('auditory') ? ' audio stories and discussions' :
+                                                assessmentStatus.profile.primaryStyle.includes('kinesthetic') ? ' interactive activities' : ' reading materials'}
+                                        to help you learn faster.
+                                    </p>
+                                    <div className="mt-4 flex gap-3">
+                                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold capitalize">
+                                            {assessmentStatus.profile.mindsetType.replace('_', ' ')} Mindset
+                                        </span>
+                                        <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-bold capitalize">
+                                            {assessmentStatus.profile.idealContentStyle.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Continue Learning Card */}
                 <section className="mb-12 animate-fade-in-up delay-100">

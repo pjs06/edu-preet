@@ -14,6 +14,7 @@ export type ContentPath = {
     description: string;
     videoUrl: string; // Mock URL or placeholder
     duration: string;
+    textContent?: string; // For text-based lessons
     questions: Question[];
 };
 

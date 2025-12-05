@@ -1,0 +1,212 @@
+[
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 1,
+        "chapter_title": "Matter in Our Surroundings",
+        "concepts": [
+            "Physical nature of matter",
+            "Characteristics of particles of matter",
+            "States of matter",
+            "Interconversion of states of matter",
+            "Effect of temperature & pressure",
+            "Evaporation",
+            "Factors affecting evaporation",
+            "Evaporation vs boiling"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 2,
+        "chapter_title": "Is Matter Around Us Pure?",
+        "concepts": [
+            "Mixtures & types (homogeneous, heterogeneous)",
+            "Solutions",
+            "Concentration of solutions",
+            "Suspensions & colloids",
+            "Physical vs chemical changes",
+            "Separation techniques (evaporation, filtration, centrifugation, chromatography, distillation)",
+            "Types of pure substances (elements & compounds)"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 3,
+        "chapter_title": "Atoms and Molecules",
+        "concepts": [
+            "Laws of chemical combination",
+            "Dalton’s atomic theory",
+            "Atom & its symbols",
+            "Atomic mass & molecular mass",
+            "Mole concept",
+            "Writing chemical formulae"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 4,
+        "chapter_title": "Structure of the Atom",
+        "concepts": [
+            "Charged particles in matter",
+            "Thomson’s model",
+            "Rutherford’s model",
+            "Bohr’s model",
+            "Distribution of electrons (2n² rule)",
+            "Valency",
+            "Atomic number & mass number",
+            "Isotopes & isobars"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 5,
+        "chapter_title": "The Fundamental Unit of Life",
+        "concepts": [
+            "Discovery of the cell",
+            "Cell theory",
+            "Prokaryotic vs eukaryotic cells",
+            "Plant cell vs animal cell",
+            "Cell organelles (Plasma membrane, Nucleus, Cytoplasm, Mitochondria, Golgi apparatus, Endoplasmic reticulum, Plastids, Vacuoles)"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 6,
+        "chapter_title": "Tissues",
+        "concepts": [
+            "Plant tissues (Meristematic, Permanent)",
+            "Animal tissues (Epithelial, Connective, Muscular, Nervous)"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 7,
+        "chapter_title": "Diversity in Living Organisms",
+        "concepts": [
+            "Basis of classification",
+            "Five-kingdom classification (Monera, Protista, Fungi, Plantae, Animalia)",
+            "Hierarchy – phylum, class, order, family, genus, species",
+            "Binomial nomenclature"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 8,
+        "chapter_title": "Motion",
+        "concepts": [
+            "Distance & displacement",
+            "Speed, velocity",
+            "Acceleration",
+            "Graphical representation of motion",
+            "Equations of motion",
+            "Uniform & non-uniform motion"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 9,
+        "chapter_title": "Force and Laws of Motion",
+        "concepts": [
+            "Balanced & unbalanced forces",
+            "Newton’s 3 laws",
+            "Inertia & mass",
+            "Momentum",
+            "Conservation of momentum"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 10,
+        "chapter_title": "Gravitation",
+        "concepts": [
+            "Universal law of gravitation",
+            "Free fall",
+            "Acceleration due to gravity",
+            "Mass vs weight",
+            "Thrust & pressure",
+            "Archimedes’ principle",
+            "Buoyancy"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 11,
+        "chapter_title": "Work and Energy",
+        "concepts": [
+            "Work",
+            "Energy",
+            "Forms of energy",
+            "Kinetic energy",
+            "Potential energy",
+            "Law of conservation of energy",
+            "Power"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 12,
+        "chapter_title": "Sound",
+        "concepts": [
+            "Production of sound",
+            "Propagation of sound",
+            "Sound waves (longitudinal)",
+            "Frequency, amplitude, speed",
+            "Reflection of sound",
+            "Echo & reverberation",
+            "SONAR",
+            "Human ear structure"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 13,
+        "chapter_title": "Why Do We Fall Ill?",
+        "concepts": [
+            "Health & disease",
+            "Causes of diseases",
+            "Infectious & non-infectious diseases",
+            "Pathogens",
+            "Prevention of diseases",
+            "Principles of treatment"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 14,
+        "chapter_title": "Natural Resources",
+        "concepts": [
+            "Air",
+            "Water",
+            "Soil",
+            "Biogeochemical cycles",
+            "Ozone layer"
+        ]
+    },
+    {
+        "subject": "Science",
+        "grade": 9,
+        "chapter_number": 15,
+        "chapter_title": "Improvement in Food Resources",
+        "concepts": [
+            "Crop production",
+            "Manures & fertilizers",
+            "Irrigation",
+            "Cropping patterns",
+            "Animal husbandry",
+            "Poultry, cattle farming, fish production"
+        ]
+    }
+]

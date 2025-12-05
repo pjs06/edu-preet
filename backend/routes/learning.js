@@ -68,34 +68,141 @@ router.post('/start', async (req, res) => {
 
 // Get Adaptive Content for a Concept
 router.get('/content/:conceptId', async (req, res) => {
+    let client;
     try {
+        client = await pool.connect();
         const { conceptId } = req.params;
-        const { language = 'en' } = req.query;
+        const { studentId } = req.query; // Need studentId to personalize
 
-        // Fetch all paths for this concept from cache
-        const result = await pool.query(`
-            SELECT path_type, generated_content 
-            FROM ai_content_cache 
-            WHERE concept_id = $1 AND language = $2
-        `, [conceptId, language]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Content not found' });
+        if (!studentId) {
+            return res.status(400).json({ error: 'Student ID required for personalization' });
         }
 
-        // Structure the response
-        const content = {};
-        result.rows.forEach(row => {
-            // path_type is lowercase (main, story, analogy), frontend expects uppercase keys
-            const key = row.path_type.toUpperCase();
-            content[key] = JSON.parse(row.generated_content);
-        });
+        // 1. Fetch Student Profile
+        const profileResult = await client.query(`
+            SELECT * FROM learning_assessments 
+            WHERE student_id = $1 
+            ORDER BY created_at DESC LIMIT 1
+        `, [studentId]);
 
-        res.json(content);
+        let profile = {};
+        if (profileResult.rows.length > 0) {
+            const p = profileResult.rows[0];
+            profile = {
+                primaryLearningStyle: p.primary_learning_style,
+                mindsetType: p.mindset_type,
+                idealContentStyle: p.ideal_content_style,
+                supportLevel: p.support_level || 'moderate_encouragement', // Default if missing
+                processingSpeed: p.processing_speed
+            };
+        } else {
+            // Default profile if no assessment
+            profile = {
+                primaryLearningStyle: 'visual',
+                mindsetType: 'balanced',
+                idealContentStyle: 'structured_text',
+                supportLevel: 'moderate_encouragement',
+                processingSpeed: 'moderate'
+            };
+        }
+
+        // 2. Generate Personalized Content (Real AI)
+        const { generatePersonalizedPrompt } = require('../utils/promptPersonalizer');
+        const { generateContent } = require('../utils/openrouter');
+
+        // Use the conceptId (subtopic name) as the topic
+        const topic = decodeURIComponent(conceptId);
+
+        const basePrompt = `
+        Create a personalized lesson for a Class 9 student on the topic: "${topic}".
+        
+        OUTPUT FORMAT:
+        Return ONLY a valid JSON object. Do not include any markdown formatting (like \`\`\`json) outside the JSON.
+        The JSON must have the following structure:
+        {
+            "lessonContent": "The text of the lesson...",
+            "questions": [
+                {
+                    "id": "q1",
+                    "text": "Question text...",
+                    "options": [
+                        { "id": "A", "text": "Option A" },
+                        { "id": "B", "text": "Option B" },
+                        { "id": "C", "text": "Option C" }
+                    ],
+                    "correctAnswer": "B",
+                    "rationale": "Explanation..."
+                }
+            ]
+        }
+        
+        CRITICAL INSTRUCTIONS:
+        1. **EMOJIS ALLOWED**: You may use emojis to make the content engaging.
+        2. **VALID JSON**: Ensure all strings are properly escaped. 
+           - **IMPORTANT**: Any newlines INSIDE strings must be escaped as \\n. 
+           - Do NOT put actual line breaks inside string values.
+        3. **NO MARKDOWN BLOCKS**: Return raw JSON only.
+        4. **Personalization**: tailored to the student's profile (see below).
+        `;
+
+        const personalizedPrompt = generatePersonalizedPrompt(basePrompt, profile);
+
+        console.log(`Generating content for ${topic} with profile: ${profile.primaryLearningStyle}`);
+
+        // Debug: Log the prompt
+        // console.log('Prompt:', personalizedPrompt);
+
+        let aiResponseRaw = await generateContent(personalizedPrompt);
+        console.log('AI Response Raw:', aiResponseRaw);
+
+        // Parse JSON from AI response (handle potential markdown code blocks)
+        let generatedData;
+        try {
+            // Remove markdown code blocks if present
+            const jsonMatch = aiResponseRaw.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                // Sanitize: Fix common AI JSON errors like escaped single quotes
+                const sanitizedJson = jsonMatch[0]
+                    .replace(/\\'/g, "'") // Replace \' with '
+                    .replace(/\\"/g, '\\"') // Ensure escaped double quotes are preserved (if any)
+                // Note: The above might be risky if not careful, but \' is the main culprit here.
+                // Better approach: Just handle \' which is invalid in JSON.
+
+                generatedData = JSON.parse(sanitizedJson);
+            } else {
+                throw new Error("No JSON found in response");
+            }
+        } catch (e) {
+            console.error("Failed to parse AI response:", e);
+            // Fallback if parsing fails
+            generatedData = {
+                lessonContent: aiResponseRaw || "Error generating lesson content.",
+                questions: []
+            };
+        }
+
+        res.json({
+            MAIN: {
+                type: 'LESSON',
+                title: `${topic}`,
+                textContent: generatedData.lessonContent,
+                questions: generatedData.questions.length > 0 ? generatedData.questions : [
+                    {
+                        id: 'q1',
+                        text: 'Review the lesson and try again.',
+                        options: [{ id: 'A', text: 'Ok' }],
+                        correctAnswer: 'A',
+                        rationale: 'Parsing error fallback.'
+                    }
+                ]
+            }
+        });
 
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    } finally {
+        if (client) client.release();
     }
 });
 
