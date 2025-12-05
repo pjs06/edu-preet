@@ -169,6 +169,11 @@ router.get('/content/:conceptId', async (req, res) => {
                 // Better approach: Just handle \' which is invalid in JSON.
 
                 generatedData = JSON.parse(sanitizedJson);
+
+                // Validate structure
+                if (!generatedData.lessonContent || !Array.isArray(generatedData.questions)) {
+                    throw new Error("Invalid AI response structure: Missing content or questions");
+                }
             } else {
                 throw new Error("No JSON found in response");
             }
